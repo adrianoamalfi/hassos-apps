@@ -1,0 +1,4 @@
+configuration:
+  log_level:
+    name: Log level
+    description: The log verbosity level for the add-on.

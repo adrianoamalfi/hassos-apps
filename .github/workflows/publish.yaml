@@ -1,0 +1,55 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  parse-release:
+    runs-on: ubuntu-latest
+    outputs:
+      addon: ${{ steps.parse.outputs.addon }}
+      version: ${{ steps.parse.outputs.version }}
+    steps:
+      - name: Parse release tag
+        id: parse
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          # Tag format: addon-name-vX.Y.Z
+          ADDON=$(echo "${TAG}" | sed 's/-v[0-9].*$//')
+          VERSION=$(echo "${TAG}" | grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+')
+          echo "addon=${ADDON}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Publishing ${ADDON} v${VERSION}"
+
+  publish:
+    needs: parse-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        arch:
+          - amd64
+          - aarch64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ${{ needs.parse-release.outputs.addon }} (${{ matrix.arch }})
+        uses: home-assistant/builder@master
+        with:
+          args: |
+            --${{ matrix.arch }}
+            --target ${{ needs.parse-release.outputs.addon }}
+            --docker-hub ${{ env.REGISTRY }}/${{ github.repository_owner }}

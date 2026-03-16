@@ -1,0 +1,89 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      addons: ${{ steps.changed.outputs.addons }}
+      any_changed: ${{ steps.changed.outputs.any_changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed add-ons
+        id: changed
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE=${{ github.event.pull_request.base.sha }}
+          else
+            BASE=${{ github.event.before }}
+          fi
+
+          # Find all addon dirs that have changes
+          CHANGED=$(git diff --name-only "${BASE}" HEAD | \
+            grep -oP '^[^/]+(?=/)' | sort -u | \
+            while read -r dir; do
+              [ -f "${dir}/config.yaml" ] && echo "${dir}"
+            done | jq -R -s -c 'split("\n") | map(select(. != ""))')
+
+          if [ "${CHANGED}" = "[]" ] || [ -z "${CHANGED}" ]; then
+            echo "any_changed=false" >> "$GITHUB_OUTPUT"
+            echo "addons=[]" >> "$GITHUB_OUTPUT"
+          else
+            echo "any_changed=true" >> "$GITHUB_OUTPUT"
+            echo "addons=${CHANGED}" >> "$GITHUB_OUTPUT"
+          fi
+
+  lint-addon:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.any_changed == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        addon: ${{ fromJson(needs.detect-changes.outputs.addons) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint ${{ matrix.addon }}
+        uses: frenck/action-addon-linter@v2
+        with:
+          path: "./${{ matrix.addon }}"
+
+  lint-yaml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: YAML Lint
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          config_data: |
+            extends: default
+            rules:
+              line-length:
+                max: 150
+              truthy:
+                check-keys: false
+
+  lint-shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: "."
+
+  lint-hadolint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          recursive: true
+          ignore: DL3018

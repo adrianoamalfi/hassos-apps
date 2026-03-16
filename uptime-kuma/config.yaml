@@ -1,0 +1,26 @@
+name: Uptime Kuma
+version: "1.0.0"
+slug: uptime_kuma
+description: A self-hosted monitoring tool for tracking uptime of websites and services.
+url: https://github.com/adrianoamalfi/hassos-apps/tree/main/uptime-kuma
+arch:
+  - amd64
+  - aarch64
+startup: services
+boot: auto
+init: false
+ingress: true
+ingress_port: 3001
+panel_icon: mdi:monitor-eye
+panel_title: Uptime Kuma
+ports:
+  3001/tcp: null
+ports_description:
+  3001/tcp: "Web UI (disabled by default, use Ingress)"
+map:
+  - addon_config:rw
+options:
+  log_level: info
+schema:
+  log_level: list(trace|debug|info|warning|error|fatal)
+image: ghcr.io/adrianoamalfi/{arch}-addon-uptime-kuma

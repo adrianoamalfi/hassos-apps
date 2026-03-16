@@ -1,0 +1,61 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      addons: ${{ steps.changed.outputs.addons }}
+      any_changed: ${{ steps.changed.outputs.any_changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed add-ons
+        id: changed
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE=${{ github.event.pull_request.base.sha }}
+          else
+            BASE=${{ github.event.before }}
+          fi
+
+          CHANGED=$(git diff --name-only "${BASE}" HEAD | \
+            grep -oP '^[^/]+(?=/)' | sort -u | \
+            while read -r dir; do
+              [ -f "${dir}/config.yaml" ] && echo "${dir}"
+            done | jq -R -s -c 'split("\n") | map(select(. != ""))')
+
+          if [ "${CHANGED}" = "[]" ] || [ -z "${CHANGED}" ]; then
+            echo "any_changed=false" >> "$GITHUB_OUTPUT"
+            echo "addons=[]" >> "$GITHUB_OUTPUT"
+          else
+            echo "any_changed=true" >> "$GITHUB_OUTPUT"
+            echo "addons=${CHANGED}" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.any_changed == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        addon: ${{ fromJson(needs.detect-changes.outputs.addons) }}
+        arch:
+          - amd64
+          - aarch64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ${{ matrix.addon }} (${{ matrix.arch }})
+        uses: home-assistant/builder@master
+        with:
+          args: |
+            --${{ matrix.arch }}
+            --target ${{ matrix.addon }}
+            --test
