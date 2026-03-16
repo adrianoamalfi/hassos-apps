@@ -12,7 +12,7 @@ jobs:
       addons: ${{ steps.changed.outputs.addons }}
       any_changed: ${{ steps.changed.outputs.any_changed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -51,7 +51,7 @@ jobs:
           - amd64
           - aarch64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build ${{ matrix.addon }} (${{ matrix.arch }})
         uses: home-assistant/builder@master
         with:
