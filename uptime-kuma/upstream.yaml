@@ -1,0 +1,4 @@
+---
+repo: "louislam/uptime-kuma"
+version_arg: "UPTIME_KUMA_VERSION"
+tag_prefix: ""

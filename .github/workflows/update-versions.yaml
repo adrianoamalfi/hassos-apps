@@ -7,55 +7,123 @@ on:
   workflow_dispatch:
 
 jobs:
-  update-stirling-pdf:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      addons: ${{ steps.find.outputs.addons }}
+      any_found: ${{ steps.find.outputs.any_found }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Find addons with upstream.yaml
+        id: find
+        run: |
+          ADDONS=$(find . -maxdepth 2 -name 'upstream.yaml' \
+            -printf '%h\n' | sed 's|^\./||' | sort | \
+            jq -R -s -c 'split("\n") | map(select(. != ""))')
+
+          if [ "${ADDONS}" = "[]" ] || [ -z "${ADDONS}" ]; then
+            echo "any_found=false" >> "$GITHUB_OUTPUT"
+            echo "addons=[]" >> "$GITHUB_OUTPUT"
+          else
+            echo "any_found=true" >> "$GITHUB_OUTPUT"
+            echo "addons=${ADDONS}" >> "$GITHUB_OUTPUT"
+          fi
+
+  update:
+    needs: discover
+    if: needs.discover.outputs.any_found == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        addon: ${{ fromJson(needs.discover.outputs.addons) }}
     steps:
       - uses: actions/checkout@v6
+
+      - name: Read upstream metadata
+        id: meta
+        run: |
+          ADDON="${{ matrix.addon }}"
+          python3 -c "
+          import yaml, os
+          with open('${ADDON}/upstream.yaml') as f:
+              d = yaml.safe_load(f)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f'repo={d[\"repo\"]}\n')
+              out.write(f'version_arg={d[\"version_arg\"]}\n')
+              out.write(f'tag_prefix={d.get(\"tag_prefix\", \"\")}\n')
+          with open('${ADDON}/config.yaml') as f:
+              c = yaml.safe_load(f)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f'display_name={c[\"name\"]}\n')
+          "
 
       - name: Get latest upstream version
         id: upstream
         run: |
-          VERSION=$(curl -fsSL \
+          REPO="${{ steps.meta.outputs.repo }}"
+          TAG_PREFIX="${{ steps.meta.outputs.tag_prefix }}"
+
+          TAG=$(curl -fsSL \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/Stirling-Tools/Stirling-PDF/releases/latest" \
-            | jq -r '.tag_name | ltrimstr("v")')
+            "https://api.github.com/repos/${REPO}/releases/latest" \
+            | jq -r '.tag_name')
+
+          VERSION="${TAG#"${TAG_PREFIX}"}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Get current Dockerfile version
         id: current
         run: |
-          VERSION=$(grep 'ARG STIRLING_PDF_VERSION=' stirling-pdf/Dockerfile \
-            | sed 's/ARG STIRLING_PDF_VERSION="\(.*\)"/\1/')
+          ADDON="${{ matrix.addon }}"
+          ARG="${{ steps.meta.outputs.version_arg }}"
+
+          VERSION=$(grep "ARG ${ARG}=" "${ADDON}/Dockerfile" \
+            | sed "s/ARG ${ARG}=\"\(.*\)\"/\1/")
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Update Stirling PDF version
-        if: steps.upstream.outputs.version != steps.current.outputs.version
+      - name: Update addon version
+        if: >-
+          steps.upstream.outputs.version !=
+          steps.current.outputs.version
         id: update
         run: |
+          ADDON="${{ matrix.addon }}"
+          ARG="${{ steps.meta.outputs.version_arg }}"
+          NAME="${{ steps.meta.outputs.display_name }}"
+          PREFIX="${{ steps.meta.outputs.tag_prefix }}"
           NEW="${{ steps.upstream.outputs.version }}"
           OLD="${{ steps.current.outputs.version }}"
 
-          # Update Dockerfile
-          sed -i "s/ARG STIRLING_PDF_VERSION=\"${OLD}\"/ARG STIRLING_PDF_VERSION=\"${NEW}\"/" \
-            stirling-pdf/Dockerfile
+          # Update Dockerfile ARG
+          sed -i \
+            "s/ARG ${ARG}=\"${OLD}\"/ARG ${ARG}=\"${NEW}\"/" \
+            "${ADDON}/Dockerfile"
 
-          # Bump addon patch version
-          ADDON_VER=$(grep '^version:' stirling-pdf/config.yaml | sed 's/version: "\(.*\)"/\1/')
+          # Bump addon patch version in config.yaml
+          ADDON_VER=$(grep '^version:' "${ADDON}/config.yaml" \
+            | sed 's/version: "\(.*\)"/\1/')
           IFS='.' read -r major minor patch <<< "$ADDON_VER"
           NEW_ADDON="${major}.${minor}.$((patch + 1))"
-          sed -i "s/^version: \"${ADDON_VER}\"/version: \"${NEW_ADDON}\"/" stirling-pdf/config.yaml
+          sed -i \
+            "s/^version: \"${ADDON_VER}\"/version: \"${NEW_ADDON}\"/" \
+            "${ADDON}/config.yaml"
 
           # Prepend changelog entry after header
           DATE=$(date +%Y-%m-%d)
           {
-            head -1 stirling-pdf/CHANGELOG.md
-            printf '\n## [%s] - %s\n\n### Changed\n\n- Updated Stirling PDF to v%s\n' \
-              "$NEW_ADDON" "$DATE" "$NEW"
-            tail -n +2 stirling-pdf/CHANGELOG.md
-          } > /tmp/changelog.md && mv /tmp/changelog.md stirling-pdf/CHANGELOG.md
+            head -1 "${ADDON}/CHANGELOG.md"
+            printf '\n## [%s] - %s\n\n### Changed\n\n' \
+              "$NEW_ADDON" "$DATE"
+            printf -- '- Updated %s to %s%s\n' \
+              "$NAME" "$PREFIX" "$NEW"
+            tail -n +2 "${ADDON}/CHANGELOG.md"
+          } > /tmp/changelog.md
+          mv /tmp/changelog.md "${ADDON}/CHANGELOG.md"
 
           echo "addon_version=${NEW_ADDON}" >> "$GITHUB_OUTPUT"
           echo "updated=true" >> "$GITHUB_OUTPUT"
@@ -65,84 +133,33 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore(stirling-pdf): update to v${{ steps.upstream.outputs.version }}"
-          branch: "update/stirling-pdf-v${{ steps.upstream.outputs.version }}"
-          title: "chore(stirling-pdf): update Stirling PDF to v${{ steps.upstream.outputs.version }}"
+          commit-message: >-
+            chore(${{ matrix.addon }}): update
+            ${{ steps.meta.outputs.display_name }} to
+            ${{ steps.meta.outputs.tag_prefix }}${{
+            steps.upstream.outputs.version }}
+          branch: >-
+            update/${{ matrix.addon }}-${{
+            steps.meta.outputs.tag_prefix }}${{
+            steps.upstream.outputs.version }}
+          title: >-
+            chore(${{ matrix.addon }}): update
+            ${{ steps.meta.outputs.display_name }} to
+            ${{ steps.meta.outputs.tag_prefix }}${{
+            steps.upstream.outputs.version }}
           body: |
-            Updates Stirling PDF from `v${{ steps.current.outputs.version }}` to `v${{ steps.upstream.outputs.version }}`.
+            Updates ${{ steps.meta.outputs.display_name }}
+            from `${{ steps.meta.outputs.tag_prefix }}${{
+            steps.current.outputs.version }}`
+            to `${{ steps.meta.outputs.tag_prefix }}${{
+            steps.upstream.outputs.version }}`.
 
-            **Upstream release:** https://github.com/Stirling-Tools/Stirling-PDF/releases/tag/v${{ steps.upstream.outputs.version }}
+            **Upstream release:**
+            https://github.com/${{ steps.meta.outputs.repo
+            }}/releases/tag/${{
+            steps.meta.outputs.tag_prefix }}${{
+            steps.upstream.outputs.version }}
 
             ---
-            *This PR was created automatically by the Update Addon Versions workflow.*
-          labels: "dependencies"
-
-  update-uptime-kuma:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Get latest upstream version
-        id: upstream
-        run: |
-          VERSION=$(curl -fsSL \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/louislam/uptime-kuma/releases/latest" \
-            | jq -r '.tag_name | ltrimstr("v")')
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-
-      - name: Get current Dockerfile version
-        id: current
-        run: |
-          VERSION=$(grep 'ARG UPTIME_KUMA_VERSION=' uptime-kuma/Dockerfile \
-            | sed 's/ARG UPTIME_KUMA_VERSION="\(.*\)"/\1/')
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-
-      - name: Update Uptime Kuma version
-        if: steps.upstream.outputs.version != steps.current.outputs.version
-        id: update
-        run: |
-          NEW="${{ steps.upstream.outputs.version }}"
-          OLD="${{ steps.current.outputs.version }}"
-
-          # Update Dockerfile
-          sed -i "s/ARG UPTIME_KUMA_VERSION=\"${OLD}\"/ARG UPTIME_KUMA_VERSION=\"${NEW}\"/" \
-            uptime-kuma/Dockerfile
-
-          # Bump addon patch version
-          ADDON_VER=$(grep '^version:' uptime-kuma/config.yaml | sed 's/version: "\(.*\)"/\1/')
-          IFS='.' read -r major minor patch <<< "$ADDON_VER"
-          NEW_ADDON="${major}.${minor}.$((patch + 1))"
-          sed -i "s/^version: \"${ADDON_VER}\"/version: \"${NEW_ADDON}\"/" uptime-kuma/config.yaml
-
-          # Prepend changelog entry after header
-          DATE=$(date +%Y-%m-%d)
-          {
-            head -1 uptime-kuma/CHANGELOG.md
-            printf '\n## [%s] - %s\n\n### Changed\n\n- Updated Uptime Kuma to v%s\n' \
-              "$NEW_ADDON" "$DATE" "$NEW"
-            tail -n +2 uptime-kuma/CHANGELOG.md
-          } > /tmp/changelog.md && mv /tmp/changelog.md uptime-kuma/CHANGELOG.md
-
-          echo "addon_version=${NEW_ADDON}" >> "$GITHUB_OUTPUT"
-          echo "updated=true" >> "$GITHUB_OUTPUT"
-
-      - name: Create Pull Request
-        if: steps.update.outputs.updated == 'true'
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore(uptime-kuma): update to v${{ steps.upstream.outputs.version }}"
-          branch: "update/uptime-kuma-v${{ steps.upstream.outputs.version }}"
-          title: "chore(uptime-kuma): update Uptime Kuma to v${{ steps.upstream.outputs.version }}"
-          body: |
-            Updates Uptime Kuma from `v${{ steps.current.outputs.version }}` to `v${{ steps.upstream.outputs.version }}`.
-
-            **Upstream release:** https://github.com/louislam/uptime-kuma/releases/tag/${{ steps.upstream.outputs.version }}
-
-            ---
-            *This PR was created automatically by the Update Addon Versions workflow.*
+            *Auto-created by Update Addon Versions workflow.*
           labels: "dependencies"
