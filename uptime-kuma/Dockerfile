@@ -1,4 +1,5 @@
 ARG BUILD_FROM
+# hadolint ignore=DL3006
 FROM ${BUILD_FROM}
 
 ARG UPTIME_KUMA_VERSION="1.23.15"
@@ -12,9 +13,12 @@ RUN apk add --no-cache \
         g++ \
         sqlite \
     && git clone --depth 1 --branch "${UPTIME_KUMA_VERSION}" \
-        https://github.com/louislam/uptime-kuma.git /opt/uptime-kuma \
-    && cd /opt/uptime-kuma \
-    && npm ci --production \
+        https://github.com/louislam/uptime-kuma.git /opt/uptime-kuma
+
+WORKDIR /opt/uptime-kuma
+
+# hadolint ignore=DL3018
+RUN npm ci --production \
     && npm run download-dist \
     && apk del --no-cache \
         git \
