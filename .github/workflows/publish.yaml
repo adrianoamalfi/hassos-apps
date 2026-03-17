@@ -63,7 +63,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push ${{ needs.parse-release.outputs.addon }} (${{ matrix.arch }})
-        uses: home-assistant/builder@2024.12.1
+        uses: home-assistant/builder@2026.02.1
         with:
           args: >-
             --${{ matrix.arch }}
