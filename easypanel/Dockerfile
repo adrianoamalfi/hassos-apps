@@ -1,7 +1,9 @@
+# ARG must be declared before any FROM to be usable in FROM instructions
+ARG BUILD_FROM
+
 # Use the official Easypanel image as the application base
 FROM easypanel/easypanel:latest AS easypanel-source
 
-ARG BUILD_FROM
 # hadolint ignore=DL3006
 FROM ${BUILD_FROM}
 
