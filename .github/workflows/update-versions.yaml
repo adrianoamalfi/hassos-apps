@@ -146,7 +146,10 @@ jobs:
         if: steps.update.outputs.updated == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Requires a PAT (classic, repo scope) stored as GH_PAT secret.
+          # GITHUB_TOKEN cannot create PRs unless "Allow GitHub Actions to
+          # create and approve pull requests" is enabled in repo settings.
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           commit-message: >-
             chore(${{ matrix.addon }}): update
             ${{ steps.meta.outputs.display_name }} to
