@@ -37,6 +37,9 @@ jobs:
               if (file.filename.startsWith('.github/')) {
                 labels.add('ci');
               }
+              if (file.filename.endsWith('.md') || file.filename === 'README.md') {
+                labels.add('docs');
+              }
             }
 
             for (const dir of addonDirs) {

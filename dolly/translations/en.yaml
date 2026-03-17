@@ -1,0 +1,8 @@
+---
+configuration:
+  log_level:
+    name: Log Level
+    description: Controls the verbosity of the add-on's log output.
+  greeting_message:
+    name: Greeting Message
+    description: The welcome message displayed on the Dolly homepage.

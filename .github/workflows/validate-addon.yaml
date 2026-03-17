@@ -1,0 +1,80 @@
+---
+name: Validate Add-on Structure
+
+on:
+  pull_request:
+
+jobs:
+  detect-changes:
+    uses: ./.github/workflows/detect-changes.yaml
+
+  validate:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.any_changed == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        addon: ${{ fromJson(needs.detect-changes.outputs.addons) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate ${{ matrix.addon }} structure
+        run: |
+          ADDON="${{ matrix.addon }}"
+          ERRORS=0
+
+          check_file() {
+            if [ ! -f "${ADDON}/$1" ]; then
+              echo "::error::${ADDON}: missing required file '$1'"
+              ERRORS=$((ERRORS + 1))
+            fi
+          }
+
+          # Required files
+          check_file "config.yaml"
+          check_file "build.yaml"
+          check_file "Dockerfile"
+          check_file "DOCS.md"
+          check_file "CHANGELOG.md"
+          check_file "rootfs/run.sh"
+          check_file "translations/en.yaml"
+
+          # Validate config.yaml has required fields
+          if [ -f "${ADDON}/config.yaml" ]; then
+            for field in name version slug description arch; do
+              if ! grep -q "^${field}:" "${ADDON}/config.yaml"; then
+                echo "::error::${ADDON}/config.yaml: missing required field '${field}'"
+                ERRORS=$((ERRORS + 1))
+              fi
+            done
+          fi
+
+          # Validate build.yaml has build_from
+          if [ -f "${ADDON}/build.yaml" ]; then
+            if ! grep -q "build_from:" "${ADDON}/build.yaml"; then
+              echo "::error::${ADDON}/build.yaml: missing 'build_from' section"
+              ERRORS=$((ERRORS + 1))
+            fi
+          fi
+
+          # Warn if JSON duplicates exist
+          if [ -f "${ADDON}/config.json" ]; then
+            echo "::warning::${ADDON}: config.json is deprecated, use config.yaml only"
+          fi
+          if [ -f "${ADDON}/build.json" ]; then
+            echo "::warning::${ADDON}: build.json is deprecated, use build.yaml only"
+          fi
+
+          # Check run.sh is executable or has correct shebang
+          if [ -f "${ADDON}/rootfs/run.sh" ]; then
+            if ! head -1 "${ADDON}/rootfs/run.sh" | grep -q "bashio"; then
+              echo "::warning::${ADDON}/rootfs/run.sh: first line should use bashio shebang"
+            fi
+          fi
+
+          if [ "${ERRORS}" -gt 0 ]; then
+            echo "::error::${ADDON}: ${ERRORS} validation error(s) found"
+            exit 1
+          fi
+
+          echo "${ADDON}: all checks passed"

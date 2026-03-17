@@ -20,8 +20,15 @@ jobs:
         run: |
           TAG="${{ github.event.release.tag_name }}"
           # Tag format: addon-name-vX.Y.Z
-          ADDON=$(echo "${TAG}" | sed 's/-v[0-9].*$//')
-          VERSION=$(echo "${TAG}" | grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+')
+          # Split on the last occurrence of "-v" followed by a semver
+          ADDON=$(echo "${TAG}" | rev | sed 's/[0-9.]*v-//' | rev)
+          VERSION=$(echo "${TAG}" | grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+$')
+
+          if [ -z "${ADDON}" ] || [ -z "${VERSION}" ]; then
+            echo "::error::Failed to parse release tag: ${TAG}"
+            exit 1
+          fi
+
           echo "addon=${ADDON}" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Publishing ${ADDON} v${VERSION}"
@@ -40,6 +47,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Verify addon directory exists
+        run: |
+          ADDON="${{ needs.parse-release.outputs.addon }}"
+          if [ ! -d "${ADDON}" ] || [ ! -f "${ADDON}/config.yaml" ]; then
+            echo "::error::Add-on directory '${ADDON}' not found or missing config.yaml"
+            exit 1
+          fi
+
       - name: Login to GHCR
         uses: docker/login-action@v4
         with:
@@ -48,7 +63,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push ${{ needs.parse-release.outputs.addon }} (${{ matrix.arch }})
-        uses: home-assistant/builder@master
+        uses: home-assistant/builder@2024.12.1
         with:
           args: >-
             --${{ matrix.arch }}

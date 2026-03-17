@@ -3,7 +3,7 @@ name: Update Addon Versions
 
 on:
   schedule:
-    - cron: "0 6 * * *"  # Daily at 6 AM UTC
+    - cron: "0 6 * * *"
   workflow_dispatch:
 
 jobs:
@@ -13,7 +13,7 @@ jobs:
       addons: ${{ steps.find.outputs.addons }}
       any_found: ${{ steps.find.outputs.any_found }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Find addons with upstream.yaml
         id: find
@@ -42,7 +42,7 @@ jobs:
       matrix:
         addon: ${{ fromJson(needs.discover.outputs.addons) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -70,16 +70,27 @@ jobs:
           REPO="${{ steps.meta.outputs.repo }}"
           TAG_PREFIX="${{ steps.meta.outputs.tag_prefix }}"
 
-          TAG=$(curl -fsSL \
+          RESPONSE=$(curl -fsSL \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${REPO}/releases/latest" \
-            | jq -r '.tag_name')
+            -w "\n%{http_code}" \
+            "https://api.github.com/repos/${REPO}/releases/latest")
 
+          HTTP_CODE=$(echo "${RESPONSE}" | tail -1)
+          BODY=$(echo "${RESPONSE}" | head -n -1)
+
+          if [ "${HTTP_CODE}" != "200" ]; then
+            echo "::warning::Failed to fetch upstream release for ${REPO} (HTTP ${HTTP_CODE})"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          TAG=$(echo "${BODY}" | jq -r '.tag_name')
           VERSION="${TAG#"${TAG_PREFIX}"}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Get current Dockerfile version
         id: current
+        if: steps.upstream.outputs.version != ''
         run: |
           ADDON="${{ matrix.addon }}"
           ARG="${{ steps.meta.outputs.version_arg }}"
@@ -90,6 +101,7 @@ jobs:
 
       - name: Update addon version
         if: >-
+          steps.upstream.outputs.version != '' &&
           steps.upstream.outputs.version !=
           steps.current.outputs.version
         id: update

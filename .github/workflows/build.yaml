@@ -8,37 +8,7 @@ on:
 
 jobs:
   detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      addons: ${{ steps.changed.outputs.addons }}
-      any_changed: ${{ steps.changed.outputs.any_changed }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Detect changed add-ons
-        id: changed
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE=${{ github.event.pull_request.base.sha }}
-          else
-            BASE=${{ github.event.before }}
-          fi
-
-          CHANGED=$(git diff --name-only "${BASE}" HEAD | \
-            grep -oP '^[^/]+(?=/)' | sort -u | \
-            while read -r dir; do
-              [ -f "${dir}/config.yaml" ] && echo "${dir}"
-            done | jq -R -s -c 'split("\n") | map(select(. != ""))')
-
-          if [ "${CHANGED}" = "[]" ] || [ -z "${CHANGED}" ]; then
-            echo "any_changed=false" >> "$GITHUB_OUTPUT"
-            echo "addons=[]" >> "$GITHUB_OUTPUT"
-          else
-            echo "any_changed=true" >> "$GITHUB_OUTPUT"
-            echo "addons=${CHANGED}" >> "$GITHUB_OUTPUT"
-          fi
+    uses: ./.github/workflows/detect-changes.yaml
 
   build:
     needs: detect-changes
@@ -54,6 +24,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Build ${{ matrix.addon }} (${{ matrix.arch }})
-        uses: home-assistant/builder@master
+        uses: home-assistant/builder@2024.12.1
         with:
           args: --${{ matrix.arch }} --target ${{ matrix.addon }} --test

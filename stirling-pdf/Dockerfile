@@ -23,4 +23,11 @@ COPY rootfs /
 # Make scripts executable
 RUN chmod a+x /run.sh
 
+# Data directory
+VOLUME ["/data"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -fsS http://localhost:8080/ > /dev/null || exit 1
+
 CMD [ "/run.sh" ]

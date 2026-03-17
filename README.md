@@ -2,6 +2,7 @@
 
 [![Lint](https://github.com/adrianoamalfi/hassos-apps/actions/workflows/lint.yaml/badge.svg)](https://github.com/adrianoamalfi/hassos-apps/actions/workflows/lint.yaml)
 [![Build](https://github.com/adrianoamalfi/hassos-apps/actions/workflows/build.yaml/badge.svg)](https://github.com/adrianoamalfi/hassos-apps/actions/workflows/build.yaml)
+[![Release](https://github.com/adrianoamalfi/hassos-apps/actions/workflows/release.yaml/badge.svg)](https://github.com/adrianoamalfi/hassos-apps/actions/workflows/release.yaml)
 
 Custom add-ons repository for Home Assistant. Run popular self-hosted apps
 directly from your Home Assistant instance.
@@ -21,10 +22,16 @@ https://github.com/adrianoamalfi/hassos-apps
 
 ## Add-ons
 
-| Add-on | Description | Upstream |
-|---|---|---|
-| [Uptime Kuma](./uptime-kuma) | Uptime monitoring for websites and services | [louislam/uptime-kuma](https://github.com/louislam/uptime-kuma) |
-| [Stirling PDF](./stirling-pdf) | PDF manipulation tool (merge, split, convert, etc.) | [Stirling-Tools/Stirling-PDF](https://github.com/Stirling-Tools/Stirling-PDF) |
+<!-- ADDON-TABLE-START -->
+| Add-on | Version | Description | Upstream |
+|--------|---------|-------------|----------|
+| [Dolly](./dolly) | 1.0.0 | A template add-on that serves as a reference for building new Home Assistant add-ons. Clone this to start your own! | - |
+| [Stirling PDF](./stirling-pdf) | 1.0.0 | A self-hosted PDF manipulation tool with merge, split, convert, and more. | [Stirling-Tools/Stirling-PDF](https://github.com/Stirling-Tools/Stirling-PDF) |
+| [Uptime Kuma](./uptime-kuma) | 1.1.0 | A self-hosted monitoring tool for tracking uptime of websites and services. | [louislam/uptime-kuma](https://github.com/louislam/uptime-kuma) |
+<!-- ADDON-TABLE-END -->
+
+> The table above is automatically updated by the
+> [Update README](.github/workflows/update-readme.yaml) workflow.
 
 ## How it works
 
@@ -32,13 +39,18 @@ https://github.com/adrianoamalfi/hassos-apps
 
 This repository uses fully automated CI/CD:
 
-- **PR Labeler** - PRs are automatically labeled by which add-on they modify
-- **Lint** - Only changed add-ons are linted (addon-linter, yamllint, ShellCheck, Hadolint)
-- **Build** - Only changed add-ons are test-built on all architectures
-- **Release** - When a version bump is detected in `config.yaml` on `main`, a GitHub Release is created automatically
-- **Publish** - On release, Docker images are built and pushed to GHCR
-- **Dependabot** - GitHub Actions are kept up to date automatically
-- **Stale** - Inactive issues and PRs are cleaned up after 30 days
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| **[Lint](.github/workflows/lint.yaml)** | Push / PR | Addon linter, yamllint, ShellCheck, Hadolint |
+| **[Build](.github/workflows/build.yaml)** | Push / PR | Test-build changed add-ons on all architectures |
+| **[Validate](.github/workflows/validate-addon.yaml)** | PR | Verify add-on directory structure and required files |
+| **[Release](.github/workflows/release.yaml)** | Push to main | Detect version bumps and create GitHub Releases |
+| **[Publish](.github/workflows/publish.yaml)** | Release | Build and push Docker images to GHCR |
+| **[Update Versions](.github/workflows/update-versions.yaml)** | Daily / manual | Check upstream releases and auto-create update PRs |
+| **[Update README](.github/workflows/update-readme.yaml)** | Push to main | Auto-update the add-on table above |
+| **[PR Labeler](.github/workflows/labeler.yaml)** | PR | Auto-label PRs by affected add-on |
+| **[Stale](.github/workflows/stale.yaml)** | Daily | Clean up inactive issues and PRs |
+| **[Dependabot](.github/dependabot.yml)** | Weekly | Keep GitHub Actions up to date |
 
 ### Release flow
 
@@ -48,30 +60,40 @@ PR with version bump in config.yaml
     -> release.yaml detects version change
       -> creates GitHub Release (e.g. uptime-kuma-v1.1.0)
         -> publish.yaml builds & pushes Docker images to GHCR
+          -> update-readme.yaml updates the add-on table
 ```
 
 ## Development
 
-### Adding a new add-on
+### Creating a new add-on
 
-1. Create a new folder: `mkdir my-app`
-2. Add the required files:
+The easiest way to start is to copy the **Dolly** template add-on:
+
+```bash
+cp -r dolly/ my-app/
+```
+
+Then customize each file in `my-app/`. See the
+[Contributing Guide](CONTRIBUTING.md) for details.
+
+### Add-on directory structure
 
 ```
 my-app/
-├── config.yaml       # Add-on metadata (name, version, arch, options)
-├── build.yaml        # Base images per architecture
-├── Dockerfile        # Container build instructions
-├── DOCS.md           # User documentation
-├── CHANGELOG.md      # Version history
+├── config.yaml          # Add-on metadata (name, version, arch, options)
+├── build.yaml           # Base images per architecture
+├── Dockerfile           # Container build instructions
+├── apparmor.txt         # AppArmor security profile
+├── DOCS.md              # User documentation
+├── CHANGELOG.md         # Version history (Keep a Changelog format)
+├── icon.png             # Add-on icon (128x128 recommended)
+├── logo.png             # Add-on logo (256x256 recommended)
 ├── translations/
-│   └── en.yaml       # English translations for options
+│   └── en.yaml          # English translations for options
+├── upstream.yaml        # (optional) Upstream version tracking
 └── rootfs/
-    └── run.sh        # Entrypoint script
+    └── run.sh           # Entrypoint script using bashio
 ```
-
-3. Open a pull request - CI will lint and test-build automatically
-4. Merge - bump the `version` in `config.yaml` to trigger a release
 
 ### Local testing
 
@@ -84,6 +106,11 @@ docker build \
 # Run
 docker run --rm -p 8080:8080 local/my-app
 ```
+
+### CI pipeline
+
+- Open a pull request - CI will lint, validate structure, and test-build
+- Merge to main - bump the `version` in `config.yaml` to trigger a release
 
 ## License
 
