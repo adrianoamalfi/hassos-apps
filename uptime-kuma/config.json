@@ -1,6 +1,6 @@
 {
   "name": "Uptime Kuma",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "slug": "uptime_kuma",
   "description": "A self-hosted monitoring tool for tracking uptime of websites and services.",
   "url": "https://github.com/adrianoamalfi/hassos-apps/tree/main/uptime-kuma",
@@ -19,10 +19,18 @@
   },
   "map": ["addon_config:rw"],
   "options": {
-    "log_level": "info"
+    "log_level": "info",
+    "timezone": "Europe/Rome",
+    "trust_proxy": false,
+    "disable_frame_sameorigin": false,
+    "node_tls_reject_unauthorized": true
   },
   "schema": {
-    "log_level": "list(trace|debug|info|warning|error|fatal)"
+    "log_level": "list(trace|debug|info|warning|error|fatal)",
+    "timezone": "str",
+    "trust_proxy": "bool",
+    "disable_frame_sameorigin": "bool",
+    "node_tls_reject_unauthorized": "bool"
   },
   "image": "ghcr.io/adrianoamalfi/{arch}-addon-uptime-kuma"
 }
