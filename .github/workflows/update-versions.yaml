@@ -3,7 +3,7 @@ name: Update Addon Versions
 
 on:
   schedule:
-    - cron: "0 6 * * *" # Daily at 6 AM UTC
+    - cron: "0 6 * * *"  # Daily at 6 AM UTC
   workflow_dispatch:
 
 jobs:
@@ -74,7 +74,7 @@ jobs:
             **Upstream release:** https://github.com/Stirling-Tools/Stirling-PDF/releases/tag/v${{ steps.upstream.outputs.version }}
 
             ---
-            *This PR was created automatically by the [Update Addon Versions](${{ github.server_url }}/${{ github.repository }}/actions/workflows/update-versions.yaml) workflow.*
+            *This PR was created automatically by the Update Addon Versions workflow.*
           labels: "dependencies"
 
   update-uptime-kuma:
@@ -144,5 +144,5 @@ jobs:
             **Upstream release:** https://github.com/louislam/uptime-kuma/releases/tag/${{ steps.upstream.outputs.version }}
 
             ---
-            *This PR was created automatically by the [Update Addon Versions](${{ github.server_url }}/${{ github.repository }}/actions/workflows/update-versions.yaml) workflow.*
+            *This PR was created automatically by the Update Addon Versions workflow.*
           labels: "dependencies"
