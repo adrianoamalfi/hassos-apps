@@ -22,13 +22,13 @@ https://github.com/adrianoamalfi/hassos-apps
 
 ## Add-ons
 
-<!-- ADDON-TABLE-START -->
+
 | Add-on | Version | Description | Upstream |
 |--------|---------|-------------|----------|
 | [Dolly](./dolly) | 1.0.0 | A template add-on that serves as a reference for building new Home Assistant add-ons. Clone this to start your own! | - |
 | [Stirling PDF](./stirling-pdf) | 1.0.0 | A self-hosted PDF manipulation tool with merge, split, convert, and more. | [Stirling-Tools/Stirling-PDF](https://github.com/Stirling-Tools/Stirling-PDF) |
 | [Uptime Kuma](./uptime-kuma) | 1.1.0 | A self-hosted monitoring tool for tracking uptime of websites and services. | [louislam/uptime-kuma](https://github.com/louislam/uptime-kuma) |
-<!-- ADDON-TABLE-END -->
+
 
 > The table above is automatically updated by the
 > [Update README](.github/workflows/update-readme.yaml) workflow.
