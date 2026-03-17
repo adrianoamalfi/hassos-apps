@@ -1,6 +1,6 @@
 ---
 name: Stirling PDF
-version: "1.0.0"
+version: "1.0.1"
 slug: stirling_pdf
 description: A self-hosted PDF manipulation tool with merge, split, convert, and more.
 url: https://github.com/adrianoamalfi/hassos-apps/tree/main/stirling-pdf
