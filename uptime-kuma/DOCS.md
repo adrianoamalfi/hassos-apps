@@ -14,7 +14,11 @@ APIs, and services directly from Home Assistant.
 
 | Option | Description | Default |
 |---|---|---|
-| `log_level` | Log verbosity | `info` |
+| `log_level` | Log verbosity (`trace`, `debug`, `info`, `warning`, `error`, `fatal`) | `info` |
+| `timezone` | Timezone for the addon (e.g. `Europe/Rome`, `America/New_York`) | `Europe/Rome` |
+| `trust_proxy` | Trust reverse proxy headers (enables correct client IP detection behind proxies) | `false` |
+| `disable_frame_sameorigin` | Allow Uptime Kuma to be embedded in iframes from other origins | `false` |
+| `node_tls_reject_unauthorized` | Validate TLS certificates when Uptime Kuma connects to monitored targets. Set to `false` only in trusted networks with self-signed certificates | `true` |
 
 ## Access
 
