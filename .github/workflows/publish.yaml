@@ -69,3 +69,17 @@ jobs:
             --${{ matrix.arch }}
             --target ${{ needs.parse-release.outputs.addon }}
             --docker-hub ${{ env.REGISTRY }}/${{ github.repository_owner }}
+
+      - name: Make GHCR package public
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PACKAGE_NAME="${{ matrix.arch }}-addon-${{ needs.parse-release.outputs.addon }}"
+          # Replace underscores with hyphens to match GHCR package naming
+          PACKAGE_NAME="${PACKAGE_NAME//_/-}"
+          gh api \
+            --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            "/user/packages/container/${PACKAGE_NAME}" \
+            -f visibility=public \
+            || echo "::warning::Failed to set package ${PACKAGE_NAME} to public - may need to be set manually in GitHub Packages settings"
