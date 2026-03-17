@@ -1,0 +1,31 @@
+#include <tunables/global>
+
+profile easypanel flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  # Receive signals from S6
+  signal (receive) peer=*_supervisor,
+
+  # Access to data directory
+  /data/** rw,
+
+  # Access to mapped addon_config
+  /config/** rw,
+
+  # Application files
+  /opt/easypanel/** r,
+  /opt/easypanel/server ix,
+
+  # Docker CLI access
+  /usr/bin/docker ix,
+  /var/run/docker.sock rw,
+
+  # Temp files
+  /tmp/** rwk,
+
+  # Network access
+  network inet stream,
+  network inet dgram,
+  network inet6 stream,
+  network inet6 dgram,
+}

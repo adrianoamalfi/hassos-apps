@@ -1,0 +1,9 @@
+---
+build_from:
+  amd64: ghcr.io/home-assistant/amd64-base:3.21
+  aarch64: ghcr.io/home-assistant/aarch64-base:3.21
+labels:
+  org.opencontainers.image.title: Easypanel
+  org.opencontainers.image.description: Modern server control panel for Docker apps and services
+  org.opencontainers.image.source: https://github.com/adrianoamalfi/hassos-apps
+  org.opencontainers.image.licenses: MIT

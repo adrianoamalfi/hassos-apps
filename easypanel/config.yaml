@@ -1,0 +1,29 @@
+---
+name: Easypanel
+version: "1.0.0"
+slug: easypanel
+description: A modern server control panel to manage Docker apps, databases, and services.
+url: https://github.com/adrianoamalfi/hassos-apps/tree/main/easypanel
+arch:
+  - amd64
+  - aarch64
+startup: services
+init: false
+ingress: true
+ingress_port: 3000
+panel_icon: mdi:view-dashboard
+panel_title: Easypanel
+ports:
+  3000/tcp: null
+ports_description:
+  3000/tcp: "Web UI (disabled by default, use Ingress)"
+map:
+  - addon_config:rw
+  - "share:rw"
+options:
+  log_level: info
+  timezone: "Europe/Rome"
+schema:
+  log_level: list(trace|debug|info|warning|error|fatal)
+  timezone: str
+image: ghcr.io/adrianoamalfi/{arch}-addon-easypanel
