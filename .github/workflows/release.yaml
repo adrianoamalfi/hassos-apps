@@ -1,3 +1,4 @@
+---
 name: Release
 
 on:
@@ -11,7 +12,7 @@ jobs:
       releases: ${{ steps.check.outputs.releases }}
       any_release: ${{ steps.check.outputs.any_release }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -37,7 +38,10 @@ jobs:
 
             if [ -n "${CURRENT}" ] && [ "${CURRENT}" != "${PREVIOUS}" ]; then
               echo "Version bump detected: ${ADDON_DIR} ${PREVIOUS} -> ${CURRENT}"
-              RELEASES=$(echo "${RELEASES}" | jq -c --arg addon "${ADDON_DIR}" --arg version "${CURRENT}" '. + [{"addon": $addon, "version": $version}]')
+              RELEASES=$(echo "${RELEASES}" | \
+                jq -c --arg addon "${ADDON_DIR}" \
+                --arg version "${CURRENT}" \
+                '. + [{"addon": $addon, "version": $version}]')
             fi
           done
 
@@ -58,7 +62,7 @@ jobs:
       matrix:
         release: ${{ fromJson(needs.detect-version-bump.outputs.releases) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Extract changelog
         id: changelog
