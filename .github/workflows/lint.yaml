@@ -18,7 +18,7 @@ jobs:
       matrix:
         addon: ${{ fromJson(needs.detect-changes.outputs.addons) }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       - name: Lint ${{ matrix.addon }}
         uses: frenck/action-addon-linter@v2
         with:
@@ -27,7 +27,7 @@ jobs:
   lint-yaml:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       - name: YAML Lint
         uses: ibiqlik/action-yamllint@v3
         with:
@@ -42,7 +42,7 @@ jobs:
   lint-shellcheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       - name: ShellCheck
         uses: ludeeus/action-shellcheck@master
         with:
@@ -51,7 +51,7 @@ jobs:
   lint-hadolint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       - name: Hadolint
         uses: hadolint/hadolint-action@v3.3.0
         with:
