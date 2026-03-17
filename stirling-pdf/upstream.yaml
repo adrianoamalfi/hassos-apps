@@ -1,0 +1,4 @@
+---
+repo: "Stirling-Tools/Stirling-PDF"
+version_arg: "STIRLING_PDF_VERSION"
+tag_prefix: "v"
