@@ -88,6 +88,49 @@ docker build \
 docker run --rm -p 8080:8080 local/my-addon
 ```
 
+## Repository setup (maintainers only)
+
+The automated [Update Versions](.github/workflows/update-versions.yaml) workflow
+creates pull requests when upstream releases are detected. It requires two
+one-time configuration steps.
+
+### 1. Allow GitHub Actions to create pull requests
+
+Go to **Settings → Actions → General → Workflow permissions** and enable:
+
+> Allow GitHub Actions to create and approve pull requests
+
+This lets the built-in `GITHUB_TOKEN` create PRs as a fallback.
+
+### 2. Create the `GH_PAT` secret (recommended)
+
+PRs created with `GITHUB_TOKEN` do **not** trigger other workflow runs (lint,
+build, validate). To have CI run automatically on auto-update PRs, store a
+Personal Access Token as `GH_PAT` in **Settings → Secrets and variables →
+Actions**.
+
+**Classic PAT** (simplest):
+
+1. Go to GitHub → **Settings → Developer settings → Personal access tokens →
+   Tokens (classic)**
+2. Click **Generate new token (classic)**
+3. Select the **`repo`** scope (full control of private repositories)
+4. Copy the token and save it as the `GH_PAT` secret in this repository
+
+**Fine-grained PAT** (more secure):
+
+1. Go to GitHub → **Settings → Developer settings → Personal access tokens →
+   Fine-grained tokens**
+2. Set **Resource owner** to `adrianoamalfi` and select this repository
+3. Grant the following **Repository permissions**:
+   - **Contents**: Read and Write
+   - **Pull requests**: Read and Write
+4. Copy the token and save it as the `GH_PAT` secret
+
+> If `GH_PAT` is absent or left empty the workflow automatically falls back to
+> `GITHUB_TOKEN`. PRs will still be created, but CI workflows will not run on
+> them automatically.
+
 ## Resources
 
 - [Home Assistant Add-on Development](https://developers.home-assistant.io/docs/add-ons)
