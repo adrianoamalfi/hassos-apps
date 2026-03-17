@@ -56,7 +56,4 @@ jobs:
       - name: Build ${{ matrix.addon }} (${{ matrix.arch }})
         uses: home-assistant/builder@master
         with:
-          args: |
-            --${{ matrix.arch }}
-            --target ${{ matrix.addon }}
-            --test
+          args: --${{ matrix.arch }} --target ${{ matrix.addon }} --test
