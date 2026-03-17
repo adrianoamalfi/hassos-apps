@@ -12,7 +12,7 @@ jobs:
       releases: ${{ steps.check.outputs.releases }}
       any_release: ${{ steps.check.outputs.any_release }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -73,7 +73,7 @@ jobs:
       matrix:
         release: ${{ fromJson(needs.detect-version-bump.outputs.releases) }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Extract changelog
         id: changelog

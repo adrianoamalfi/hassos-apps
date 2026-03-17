@@ -22,7 +22,7 @@ jobs:
           - amd64
           - aarch64
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       - name: Build ${{ matrix.addon }} (${{ matrix.arch }})
         uses: home-assistant/builder@2026.02.1
         with:

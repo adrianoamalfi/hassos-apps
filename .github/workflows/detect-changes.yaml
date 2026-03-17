@@ -18,7 +18,7 @@ jobs:
       addons: ${{ steps.changed.outputs.addons }}
       any_changed: ${{ steps.changed.outputs.any_changed }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 

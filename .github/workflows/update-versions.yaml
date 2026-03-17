@@ -13,7 +13,7 @@ jobs:
       addons: ${{ steps.find.outputs.addons }}
       any_found: ${{ steps.find.outputs.any_found }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Find addons with upstream.yaml
         id: find
@@ -42,7 +42,7 @@ jobs:
       matrix:
         addon: ${{ fromJson(needs.discover.outputs.addons) }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
