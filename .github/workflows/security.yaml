@@ -1,0 +1,74 @@
+---
+name: Security Scan
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 7 * * 1"  # Weekly on Monday at 7 AM UTC
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  detect-changes:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    uses: ./.github/workflows/detect-changes.yaml
+
+  trivy-config:
+    name: Trivy config scan (${{ matrix.addon }})
+    needs: detect-changes
+    if: >-
+      (github.event_name == 'pull_request' ||
+       github.event_name == 'push') &&
+      needs.detect-changes.outputs.any_changed == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        addon: ${{ fromJson(needs.detect-changes.outputs.addons) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy config scan on ${{ matrix.addon }}
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          scan-type: config
+          scan-ref: ${{ matrix.addon }}
+          format: sarif
+          output: trivy-config-${{ matrix.addon }}.sarif
+          severity: CRITICAL,HIGH,MEDIUM
+          exit-code: "0"
+
+      - name: Upload Trivy config scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-config-${{ matrix.addon }}.sarif
+          category: trivy-config-${{ matrix.addon }}
+
+  trivy-repo:
+    name: Trivy full repo scan
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-repo.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Upload Trivy filesystem scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-repo.sarif
+          category: trivy-repo

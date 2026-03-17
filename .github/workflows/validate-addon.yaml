@@ -13,6 +13,7 @@ jobs:
     if: needs.detect-changes.outputs.any_changed == 'true'
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         addon: ${{ fromJson(needs.detect-changes.outputs.addons) }}
     steps:
@@ -47,6 +48,15 @@ jobs:
                 ERRORS=$((ERRORS + 1))
               fi
             done
+
+            # Version must follow semver X.Y.Z
+            VER=$(grep '^version:' "${ADDON}/config.yaml" \
+              | sed 's/version: *"\?\([^"]*\)"\?/\1/' | tr -d '[:space:]')
+            if [ -n "${VER}" ] && \
+                ! echo "${VER}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "::error::${ADDON}/config.yaml: version '${VER}' must be semver (X.Y.Z)"
+              ERRORS=$((ERRORS + 1))
+            fi
           fi
 
           # Validate build.yaml has build_from
@@ -57,18 +67,22 @@ jobs:
             fi
           fi
 
-          # Warn if JSON duplicates exist
+          # Deprecated JSON formats must not exist
           if [ -f "${ADDON}/config.json" ]; then
-            echo "::warning::${ADDON}: config.json is deprecated, use config.yaml only"
+            echo "::error::${ADDON}: config.json is deprecated, use config.yaml only"
+            ERRORS=$((ERRORS + 1))
           fi
           if [ -f "${ADDON}/build.json" ]; then
-            echo "::warning::${ADDON}: build.json is deprecated, use build.yaml only"
+            echo "::error::${ADDON}: build.json is deprecated, use build.yaml only"
+            ERRORS=$((ERRORS + 1))
           fi
 
-          # Check run.sh is executable or has correct shebang
+          # Check run.sh has bashio shebang
           if [ -f "${ADDON}/rootfs/run.sh" ]; then
-            if ! head -1 "${ADDON}/rootfs/run.sh" | grep -q "bashio"; then
-              echo "::warning::${ADDON}/rootfs/run.sh: first line should use bashio shebang"
+            if ! head -1 "${ADDON}/rootfs/run.sh" | \
+                grep -qE '^#!/usr/bin/with-contenv bashio'; then
+              echo "::error::${ADDON}/rootfs/run.sh: must start with #!/usr/bin/with-contenv bashio"
+              ERRORS=$((ERRORS + 1))
             fi
           fi
 
