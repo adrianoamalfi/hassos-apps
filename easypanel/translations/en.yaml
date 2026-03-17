@@ -1,0 +1,9 @@
+---
+configuration:
+  log_level:
+    name: Log level
+    description: The log verbosity level for the add-on.
+  timezone:
+    name: Timezone
+    description: >-
+      Timezone for the addon (e.g. Europe/Rome, America/New_York).

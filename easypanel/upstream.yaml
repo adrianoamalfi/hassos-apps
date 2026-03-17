@@ -1,0 +1,4 @@
+---
+repo: "easypanel-io/easypanel"
+version_arg: "EASYPANEL_VERSION"
+tag_prefix: ""
