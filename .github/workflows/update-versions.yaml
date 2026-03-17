@@ -154,13 +154,22 @@ jobs:
           # when "Allow GitHub Actions to create and approve pull requests"
           # is enabled in Settings → Actions → General.
           token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
-          commit-message: |
-            chore(${{ matrix.addon }}): update ${{ steps.meta.outputs.display_name }} to ${{ steps.meta.outputs.tag_prefix }}${{ steps.upstream.outputs.version }}
-          branch: update/${{ matrix.addon }}-${{ steps.meta.outputs.tag_prefix }}${{ steps.upstream.outputs.version }}
+          commit-message: >-
+            chore(${{ matrix.addon }}): update
+            ${{ steps.meta.outputs.display_name }} to
+            ${{ steps.meta.outputs.tag_prefix }}${{
+            steps.upstream.outputs.version }}
+          branch: >-
+            update/${{ matrix.addon }}-${{
+            steps.meta.outputs.tag_prefix }}${{
+            steps.upstream.outputs.version }}
           delete-branch: true
           base: ${{ github.event.repository.default_branch }}
-          title: |
-            chore(${{ matrix.addon }}): update ${{ steps.meta.outputs.display_name }} to ${{ steps.meta.outputs.tag_prefix }}${{ steps.upstream.outputs.version }}
+          title: >-
+            chore(${{ matrix.addon }}): update
+            ${{ steps.meta.outputs.display_name }} to
+            ${{ steps.meta.outputs.tag_prefix }}${{
+            steps.upstream.outputs.version }}
           body: |
             Updates ${{ steps.meta.outputs.display_name }}
             from `${{ steps.meta.outputs.tag_prefix }}${{ steps.current.outputs.version }}`
