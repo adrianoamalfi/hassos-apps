@@ -6,10 +6,8 @@ FROM ${BUILD_FROM}
 # hadolint ignore=DL3018
 RUN apk add --no-cache \
         python3 \
-        curl
-
-# Create the web root with a welcome page
-RUN mkdir -p /opt/dolly/www
+        curl \
+    && mkdir -p /opt/dolly/www
 
 # Copy root filesystem overlay
 COPY rootfs /
