@@ -3,3 +3,20 @@ configuration:
   log_level:
     name: Log level
     description: The log verbosity level for the add-on.
+  timezone:
+    name: Timezone
+    description: >-
+      Timezone for the addon (e.g. Europe/Rome, America/New_York).
+  trust_proxy:
+    name: Trust proxy
+    description: >-
+      Trust reverse proxy headers for correct client IP detection.
+  disable_frame_sameorigin:
+    name: Disable frame sameorigin
+    description: >-
+      Allow Uptime Kuma to be embedded in iframes from other origins.
+  node_tls_reject_unauthorized:
+    name: Validate TLS certificates
+    description: >-
+      Validate TLS certificates when connecting to monitored targets.
+      Set to false only in trusted networks with self-signed certificates.

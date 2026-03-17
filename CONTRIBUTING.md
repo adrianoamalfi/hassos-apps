@@ -1,24 +1,96 @@
 # Contributing
 
-Contributions are welcome!
+Contributions are welcome! This guide explains how to add a new add-on or
+improve an existing one.
 
-## How to contribute
+## Creating a new add-on
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/my-addon`)
-3. Follow the add-on structure from `example-addon`
-4. Ensure your add-on passes linting: the CI will run automatically on PR
-5. Submit a pull request
+### 1. Copy the template
+
+Start from the **Dolly** template add-on:
+
+```bash
+cp -r dolly/ my-addon/
+```
+
+### 2. Customize the files
+
+Update each file in your new add-on directory:
+
+| File | What to change |
+|------|---------------|
+| `config.yaml` | Name, slug, description, ports, options, image |
+| `build.yaml` | OCI labels (title, description) |
+| `Dockerfile` | Install your application and its dependencies |
+| `rootfs/run.sh` | Startup logic: read config, set env vars, exec app |
+| `DOCS.md` | User-facing documentation |
+| `CHANGELOG.md` | Start with your initial release |
+| `translations/en.yaml` | Descriptions for each configuration option |
+| `apparmor.txt` | Adjust permissions for your application |
+| `icon.png` / `logo.png` | Replace with your add-on's branding |
+
+### 3. (Optional) Add upstream tracking
+
+If your add-on wraps an upstream project, create `upstream.yaml`:
+
+```yaml
+repo: owner/repo-name
+version_arg: MY_APP_VERSION
+tag_prefix: "v"
+```
+
+This enables the daily [Update Versions](.github/workflows/update-versions.yaml)
+workflow to automatically detect new upstream releases and create update PRs.
+
+### 4. Open a pull request
+
+CI will automatically:
+- Lint your YAML, Dockerfile, and shell scripts
+- Validate the add-on directory structure
+- Test-build for all supported architectures
+
+### 5. Release
+
+After merging, bump the `version` field in `config.yaml` (in a follow-up PR
+or the same PR). This triggers the automated release and publish pipeline.
 
 ## Add-on requirements
 
-- Must include `config.yaml`, `Dockerfile`, `DOCS.md`, and `CHANGELOG.md`
+- Must include: `config.yaml`, `build.yaml`, `Dockerfile`, `DOCS.md`,
+  `CHANGELOG.md`, `rootfs/run.sh`, `translations/en.yaml`
 - Must support `amd64` and `aarch64` architectures
-- Must use semantic versioning
-- Must pass all CI checks (lint, build)
+- Must use semantic versioning (X.Y.Z)
+- Must pass all CI checks (lint, build, validate)
+
+## Naming conventions
+
+- **Directory name**: lowercase with hyphens (e.g., `my-addon`)
+- **Slug**: lowercase with underscores (e.g., `my_addon`)
+- **Image**: `ghcr.io/adrianoamalfi/{arch}-addon-{directory-name}`
+- **Release tag**: `{directory-name}-v{version}` (e.g., `my-addon-v1.0.0`)
 
 ## Code style
 
-- Shell scripts must pass ShellCheck
-- Dockerfiles must pass Hadolint
+- Shell scripts must pass [ShellCheck](https://www.shellcheck.net/)
+- Dockerfiles must pass [Hadolint](https://github.com/hadolint/hadolint)
 - YAML files must be valid and follow the yamllint config
+- Use `bashio` for configuration reading and logging in `run.sh`
+
+## Local testing
+
+```bash
+# Build for amd64
+docker build \
+  --build-arg BUILD_FROM="ghcr.io/home-assistant/amd64-base:3.21" \
+  -t local/my-addon ./my-addon
+
+# Run with a test port
+docker run --rm -p 8080:8080 local/my-addon
+```
+
+## Resources
+
+- [Home Assistant Add-on Development](https://developers.home-assistant.io/docs/add-ons)
+- [Add-on Configuration](https://developers.home-assistant.io/docs/add-ons/configuration)
+- [Add-on Communication](https://developers.home-assistant.io/docs/add-ons/communication)
+- [Bashio Library](https://github.com/hassio-addons/bashio)

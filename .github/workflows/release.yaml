@@ -26,17 +26,28 @@ jobs:
             ADDON_DIR=$(dirname "${config}")
 
             # Skip if this addon wasn't changed
-            if ! git diff --name-only "${BASE}" HEAD | grep -q "^${ADDON_DIR}/"; then
+            if ! git diff --name-only "${BASE}" HEAD \
+                | grep -q "^${ADDON_DIR}/"; then
               continue
             fi
 
             # Get current version
-            CURRENT=$(grep '^version:' "${config}" | sed 's/version: *"\?\([^"]*\)"\?/\1/')
+            CURRENT=$(grep '^version:' "${config}" \
+              | sed 's/version: *"\?\([^"]*\)"\?/\1/')
 
             # Get previous version (if file existed)
-            PREVIOUS=$(git show "${BASE}:${config}" 2>/dev/null | grep '^version:' | sed 's/version: *"\?\([^"]*\)"\?/\1/' || echo "")
+            PREVIOUS=$(git show "${BASE}:${config}" 2>/dev/null \
+              | grep '^version:' \
+              | sed 's/version: *"\?\([^"]*\)"\?/\1/' || echo "")
 
             if [ -n "${CURRENT}" ] && [ "${CURRENT}" != "${PREVIOUS}" ]; then
+              # Verify tag doesn't already exist
+              TAG="${ADDON_DIR}-v${CURRENT}"
+              if git tag -l "${TAG}" | grep -q .; then
+                echo "::warning::Tag ${TAG} already exists, skipping"
+                continue
+              fi
+
               echo "Version bump detected: ${ADDON_DIR} ${PREVIOUS} -> ${CURRENT}"
               RELEASES=$(echo "${RELEASES}" | \
                 jq -c --arg addon "${ADDON_DIR}" \
@@ -72,8 +83,13 @@ jobs:
           CHANGELOG="${ADDON}/CHANGELOG.md"
 
           if [ -f "${CHANGELOG}" ]; then
-            # Extract the section for this version
-            NOTES=$(sed -n "/^## \[${VERSION}\]/,/^## \[/p" "${CHANGELOG}" | head -n -1)
+            # Extract the section for this version (between ## [version] headers)
+            NOTES=$(awk \
+              "/^## \\[${VERSION}\\]/{found=1; next} /^## \\[/{if(found) exit} found" \
+              "${CHANGELOG}")
+            if [ -z "${NOTES}" ]; then
+              NOTES="Release ${VERSION} of ${ADDON}"
+            fi
           else
             NOTES="Release ${VERSION} of ${ADDON}"
           fi

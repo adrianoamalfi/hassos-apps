@@ -1,0 +1,32 @@
+---
+# Home Assistant Add-on Configuration
+# See: https://developers.home-assistant.io/docs/add-ons/configuration
+name: Dolly
+version: "1.0.0"
+slug: dolly
+description: >-
+  A template add-on that serves as a reference for building new
+  Home Assistant add-ons. Clone this to start your own!
+url: https://github.com/adrianoamalfi/hassos-apps/tree/main/dolly
+arch:
+  - amd64
+  - aarch64
+startup: services
+init: false
+ingress: true
+ingress_port: 8080
+panel_icon: mdi:sheep
+panel_title: Dolly
+ports:
+  8080/tcp: null
+ports_description:
+  8080/tcp: "Web UI (disabled by default, use Ingress)"
+map:
+  - addon_config:rw
+options:
+  log_level: info
+  greeting_message: "Hello from Dolly!"
+schema:
+  log_level: list(trace|debug|info|warning|error|fatal)
+  greeting_message: str
+image: ghcr.io/adrianoamalfi/{arch}-addon-dolly

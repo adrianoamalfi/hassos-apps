@@ -1,0 +1,32 @@
+#include <tunables/global>
+
+profile uptime_kuma flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  # Receive signals from S6
+  signal (receive) peer=*_supervisor,
+
+  # Access to data directory
+  /data/** rw,
+
+  # Access to mapped addon_config
+  /config/** rw,
+
+  # Application files
+  /opt/uptime-kuma/** r,
+  /opt/uptime-kuma/node_modules/** mr,
+
+  # Node.js runtime
+  /usr/bin/node ix,
+
+  # Temp files
+  /tmp/** rwk,
+
+  # Network access (needed for monitoring)
+  network inet stream,
+  network inet dgram,
+  network inet6 stream,
+  network inet6 dgram,
+  network inet raw,
+  network inet6 raw,
+}

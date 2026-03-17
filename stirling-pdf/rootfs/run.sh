@@ -10,9 +10,9 @@ export SYSTEM_DEFAULTLOCALE=en_US
 export PUID=0
 export PGID=0
 
-# Persistent config and data
-export CONFIG_DIR="/config"
-export LOGS_DIR="/config/logs"
+# Persistent data storage
+export CONFIG_DIR="/data/config"
+export LOGS_DIR="/data/logs"
 
 mkdir -p "${CONFIG_DIR}" "${LOGS_DIR}"
 
