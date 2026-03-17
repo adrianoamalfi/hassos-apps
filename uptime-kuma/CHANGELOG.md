@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.1] - 2026-03-17
+
+### Changed
+
+- Updated Uptime Kuma to 2.2.1
+
 ## [1.1.0] - 2026-03-17
 
 ### Added
