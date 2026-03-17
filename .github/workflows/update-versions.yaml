@@ -6,6 +6,13 @@ on:
     - cron: "0 6 * * *"
   workflow_dispatch:
 
+# GITHUB_TOKEN needs these permissions to create PRs.
+# Also requires: Settings → Actions → General →
+#   "Allow GitHub Actions to create and approve pull requests" ✓
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   discover:
     runs-on: ubuntu-latest
@@ -34,17 +41,15 @@ jobs:
     needs: discover
     if: needs.discover.outputs.any_found == 'true'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     strategy:
       fail-fast: false
       matrix:
         addon: ${{ fromJson(needs.discover.outputs.addons) }}
     steps:
+      # Do NOT set persist-credentials: false here.
+      # peter-evans/create-pull-request needs persisted credentials to push
+      # when using GITHUB_TOKEN. When GH_PAT is provided it overrides them.
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
 
       - name: Read upstream metadata
         id: meta
@@ -95,8 +100,8 @@ jobs:
           ADDON="${{ matrix.addon }}"
           ARG="${{ steps.meta.outputs.version_arg }}"
 
-          VERSION=$(grep "ARG ${ARG}=" "${ADDON}/Dockerfile" \
-            | sed "s/ARG ${ARG}=\"\(.*\)\"/\1/")
+          VERSION=$(grep "^ARG ${ARG}=" "${ADDON}/Dockerfile" \
+            | sed 's/^ARG [^=]*="\(.*\)"/\1/')
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Update addon version
@@ -113,18 +118,16 @@ jobs:
           NEW="${{ steps.upstream.outputs.version }}"
           OLD="${{ steps.current.outputs.version }}"
 
-          # Update Dockerfile ARG
-          sed -i \
-            "s/ARG ${ARG}=\"${OLD}\"/ARG ${ARG}=\"${NEW}\"/" \
+          # Update Dockerfile ARG — use fixed strings to avoid regex dot issues
+          sed -i "s/ARG ${ARG}=\"${OLD}\"/ARG ${ARG}=\"${NEW}\"/" \
             "${ADDON}/Dockerfile"
 
           # Bump addon patch version in config.yaml
           ADDON_VER=$(grep '^version:' "${ADDON}/config.yaml" \
-            | sed 's/version: "\(.*\)"/\1/')
+            | sed 's/^version: *"\([^"]*\)"/\1/')
           IFS='.' read -r major minor patch <<< "$ADDON_VER"
           NEW_ADDON="${major}.${minor}.$((patch + 1))"
-          sed -i \
-            "s/^version: \"${ADDON_VER}\"/version: \"${NEW_ADDON}\"/" \
+          sed -i "s/^version: \"${ADDON_VER}\"/version: \"${NEW_ADDON}\"/" \
             "${ADDON}/config.yaml"
 
           # Prepend changelog entry after header
@@ -146,9 +149,10 @@ jobs:
         if: steps.update.outputs.updated == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
-          # Requires a PAT (classic, repo scope) stored as GH_PAT secret.
-          # GITHUB_TOKEN cannot create PRs unless "Allow GitHub Actions to
-          # create and approve pull requests" is enabled in repo settings.
+          # Use a PAT (classic, repo scope) stored as GH_PAT for PRs that
+          # trigger other workflows. Falls back to GITHUB_TOKEN which works
+          # when "Allow GitHub Actions to create and approve pull requests"
+          # is enabled in Settings → Actions → General.
           token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           commit-message: >-
             chore(${{ matrix.addon }}): update
@@ -159,6 +163,8 @@ jobs:
             update/${{ matrix.addon }}-${{
             steps.meta.outputs.tag_prefix }}${{
             steps.upstream.outputs.version }}
+          delete-branch: true
+          base: ${{ github.event.repository.default_branch }}
           title: >-
             chore(${{ matrix.addon }}): update
             ${{ steps.meta.outputs.display_name }} to
@@ -166,16 +172,11 @@ jobs:
             steps.upstream.outputs.version }}
           body: |
             Updates ${{ steps.meta.outputs.display_name }}
-            from `${{ steps.meta.outputs.tag_prefix }}${{
-            steps.current.outputs.version }}`
-            to `${{ steps.meta.outputs.tag_prefix }}${{
-            steps.upstream.outputs.version }}`.
+            from `${{ steps.meta.outputs.tag_prefix }}${{ steps.current.outputs.version }}`
+            to `${{ steps.meta.outputs.tag_prefix }}${{ steps.upstream.outputs.version }}`.
 
             **Upstream release:**
-            https://github.com/${{ steps.meta.outputs.repo
-            }}/releases/tag/${{
-            steps.meta.outputs.tag_prefix }}${{
-            steps.upstream.outputs.version }}
+            https://github.com/${{ steps.meta.outputs.repo }}/releases/tag/${{ steps.meta.outputs.tag_prefix }}${{ steps.upstream.outputs.version }}
 
             ---
             *Auto-created by Update Addon Versions workflow.*
