@@ -19,8 +19,17 @@ jobs:
       - name: Check for version bumps
         id: check
         run: |
-          BASE=${{ github.event.before }}
+          BASE="${{ github.event.before }}"
           RELEASES="[]"
+
+          # Guard against first push or force push (empty or zero SHA)
+          if [ -z "${BASE}" ] || \
+              [ "${BASE}" = "0000000000000000000000000000000000000000" ]; then
+            echo "::notice::First push or force push detected, skipping release detection"
+            echo "any_release=false" >> "$GITHUB_OUTPUT"
+            echo "releases=[]" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           for config in */config.yaml; do
             ADDON_DIR=$(dirname "${config}")

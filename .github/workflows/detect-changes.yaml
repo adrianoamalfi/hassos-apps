@@ -26,17 +26,26 @@ jobs:
         id: changed
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE=${{ github.event.pull_request.base.sha }}
+            BASE="${{ github.event.pull_request.base.sha }}"
           else
-            BASE=${{ github.event.before }}
+            BASE="${{ github.event.before }}"
           fi
 
-          # Find all addon dirs that have changes
-          CHANGED=$(git diff --name-only "${BASE}" HEAD | \
-            grep -oP '^[^/]+(?=/)' | sort -u | \
-            while read -r dir; do
-              [ -f "${dir}/config.yaml" ] && echo "${dir}"
-            done | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          # Handle first push or force push (empty or all-zero SHA)
+          if [ -z "${BASE}" ] || \
+              [ "${BASE}" = "0000000000000000000000000000000000000000" ]; then
+            CHANGED=$(find . -maxdepth 1 -mindepth 1 -type d \
+              ! -name '.git' ! -name '.github' | sed 's|^\./||' | \
+              while read -r dir; do
+                [ -f "${dir}/config.yaml" ] && echo "${dir}"
+              done | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          else
+            CHANGED=$(git diff --name-only "${BASE}" HEAD | \
+              grep -oP '^[^/]+(?=/)' | sort -u | \
+              while read -r dir; do
+                [ -f "${dir}/config.yaml" ] && echo "${dir}"
+              done | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          fi
 
           if [ "${CHANGED}" = "[]" ] || [ -z "${CHANGED}" ]; then
             echo "any_changed=false" >> "$GITHUB_OUTPUT"
