@@ -2,7 +2,7 @@ ARG BUILD_FROM
 # hadolint ignore=DL3006
 FROM ${BUILD_FROM}
 
-ARG UPTIME_KUMA_VERSION="1.23.15"
+ARG UPTIME_KUMA_VERSION="2.2.1"
 
 # Install Node.js, build dependencies, and clone Uptime Kuma
 # hadolint ignore=DL3018
