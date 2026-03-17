@@ -53,16 +53,6 @@ jobs:
           - aarch64
     steps:
       - uses: actions/checkout@v6
-
-      - name: Debug - list addon files
-        run: |
-          echo "Workspace: ${{ github.workspace }}"
-          ls -la "${{ matrix.addon }}/"
-          echo "--- config.yaml ---"
-          head -3 "${{ matrix.addon }}/config.yaml"
-          echo "--- build.yaml ---"
-          head -3 "${{ matrix.addon }}/build.yaml"
-
       - name: Build ${{ matrix.addon }} (${{ matrix.arch }})
         uses: home-assistant/builder@master
         with:

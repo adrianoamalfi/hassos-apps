@@ -4,9 +4,11 @@ FROM ${BUILD_FROM}
 
 ARG UPTIME_KUMA_VERSION="1.23.15"
 
-# Install build dependencies and Uptime Kuma
+# Install Node.js, build dependencies, and Uptime Kuma
 # hadolint ignore=DL3018
 RUN apk add --no-cache \
+        nodejs \
+        npm \
         git \
         python3 \
         make \
