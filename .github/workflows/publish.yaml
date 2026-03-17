@@ -50,7 +50,7 @@ jobs:
       - name: Build and push ${{ needs.parse-release.outputs.addon }} (${{ matrix.arch }})
         uses: home-assistant/builder@master
         with:
-          args: |
+          args: >-
             --${{ matrix.arch }}
             --target ${{ needs.parse-release.outputs.addon }}
             --docker-hub ${{ env.REGISTRY }}/${{ github.repository_owner }}

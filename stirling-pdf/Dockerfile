@@ -17,7 +17,7 @@ RUN apk add --no-cache \
         "https://github.com/Stirling-Tools/Stirling-PDF/releases/download/v${STIRLING_PDF_VERSION}/Stirling-PDF-with-login.jar" \
         -o /opt/stirling-pdf/stirling-pdf.jar
 
-# Copy root filesystem
+# Copy root filesystem overlay
 COPY rootfs /
 
 # Make scripts executable

@@ -25,7 +25,7 @@ RUN npm ci --production \
         make \
         g++
 
-# Copy root filesystem
+# Copy root filesystem overlay
 COPY rootfs /
 
 # Data directory
