@@ -73,7 +73,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push ${{ needs.parse-release.outputs.addon }} (${{ matrix.arch }})
-        uses: home-assistant/builder@2026.02.1
+        uses: home-assistant/builder@2026.03.2
         with:
           args: >-
             --${{ matrix.arch }}
