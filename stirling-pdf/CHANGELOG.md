@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.2] - 2026-03-24
+
+### Changed
+
+- Updated Stirling PDF to v2.7.3
+
 ## [1.0.1] - 2026-03-17
 
 ### Changed
