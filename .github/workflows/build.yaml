@@ -24,6 +24,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build ${{ matrix.addon }} (${{ matrix.arch }})
-        uses: home-assistant/builder@2026.02.1
+        uses: home-assistant/builder@2026.03.2
         with:
           args: --${{ matrix.arch }} --target ${{ matrix.addon }} --test
