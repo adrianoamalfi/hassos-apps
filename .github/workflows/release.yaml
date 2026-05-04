@@ -107,7 +107,7 @@ jobs:
           echo "${NOTES}" > /tmp/release_notes.md
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: "${{ matrix.release.addon }}-v${{ matrix.release.version }}"
           name: "${{ matrix.release.addon }} v${{ matrix.release.version }}"
