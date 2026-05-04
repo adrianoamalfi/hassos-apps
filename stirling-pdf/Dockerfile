@@ -2,7 +2,7 @@ ARG BUILD_FROM
 # hadolint ignore=DL3006
 FROM ${BUILD_FROM}
 
-ARG STIRLING_PDF_VERSION="2.7.3"
+ARG STIRLING_PDF_VERSION="2.10.0"
 
 # Install Java runtime and dependencies
 # hadolint ignore=DL3018
